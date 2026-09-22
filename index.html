@@ -430,7 +430,7 @@
                     highIntensityDistance: parseFloat(cleanItem.highIntensityDistance ?? cleanItem['High Intensity Distance (Yards)'] ?? cleanItem['High Intensity Distance'] ?? cleanItem['High Intensity Distance Yards'] ?? cleanItem['HSR (yd)'] ?? 0),
                     accelerations: parseFloat(cleanItem.accelerations ?? cleanItem['Accelerations'] ?? cleanItem['Accelerations (Count)'] ?? cleanItem['Accel Count'] ?? 0),
                     decelerations: parseFloat(cleanItem.decelerations ?? cleanItem['Decelerations'] ?? cleanItem['Decelerations (Count)'] ?? cleanItem['Decel Count'] ?? 0),
-                    sprintDistance: parseFloat(cleanItem.sprintDistance ?? cleanItem['Sprint Distance (Miles)'] ?? cleanItem['Sprint Distance'] ?? cleanItem['Sprint Distance Miles'] ?? 0),
+                    sprintDistance: parseFloat(cleanItem.sprintDistance ?? cleanItem['Sprint Distance (Yards)'] ?? cleanItem['Sprint Distance'] ?? cleanItem['Sprint Distance Yards'] ?? cleanItem['Sprint Distance (Miles)'] ?? 0),
                     topSpeed: parseFloat(cleanItem.topSpeed ?? cleanItem['Top Speed (mph)'] ?? cleanItem['Top Speed'] ?? cleanItem['Max Speed'] ?? 0)
                 };
             }).filter(row => row.sessionName && row.player && !isNaN(row.totalDistance));
