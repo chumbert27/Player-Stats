@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Sports Performance Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for robust CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-sky-500 p-2 rounded-lg text-slate-950 font-bold">
+                    <i class="fa-solid fa-bolt text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight text-white">APEX <span class="text-sky-400 font-normal">GPS Analytics</span></h1>
+                    <p class="text-xs text-slate-400">Sports Performance Tracking</p>
+                </div>
+            </div>
+
+            <!-- CSV Actions -->
+            <div class="flex items-center space-x-3">
+                <button id="downloadSampleBtn" class="inline-flex items-center px-3 py-1.5 border border-slate-700 text-xs font-medium rounded-lg text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none transition">
+                    <i class="fa-solid fa-download mr-1.5 text-sky-400"></i> STATSports Sample
+                </button>
+                <label class="cursor-pointer inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg shadow-sm text-slate-950 bg-sky-400 hover:bg-sky-300 focus:outline-none transition">
+                    <i class="fa-solid fa-upload mr-1.5"></i> Upload CSV
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Controls Bar: Dropdowns for Player, Metric, and Period Filtering -->
+        <section class="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full md:w-auto flex-1">
+                
+                <!-- Player Selector Dropdown -->
+                <div class="space-y-1">
+                    <label for="playerSelect" class="block text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-user text-sky-400 mr-1"></i> Select Player
+                    </label>
+                    <div class="relative">
+                        <select id="playerSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metric Selector Dropdown -->
+                <div class="space-y-1">
+                    <label for="metricSelect" class="block text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-chart-line text-emerald-400 mr-1"></i> Select Metric
+                    </label>
+                    <div class="relative">
+                        <select id="metricSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none">
+                            <option value="totalDistance">Total Distance (Miles)</option>
+                            <option value="highIntensityDistance">High Intensity Distance (Yards)</option>
+                            <option value="accelerations">Accelerations (Count)</option>
+                            <option value="decelerations">Decelerations (Count)</option>
+                            <option value="sprintDistance">Sprint Distance (Miles)</option>
+                            <option value="topSpeed">Top Speed (mph)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STATSports Period Filter Toggle -->
+                <div class="space-y-1 sm:col-span-2 lg:col-span-1">
+                    <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-filter text-amber-400 mr-1"></i> Split Period Handling
+                    </label>
+                    <label class="flex items-center space-x-2.5 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 cursor-pointer hover:border-slate-600 transition h-[38px]">
+                        <input type="checkbox" id="totalOnlyToggle" checked class="w-4 h-4 text-sky-500 bg-slate-900 border-slate-700 rounded focus:ring-sky-500 focus:ring-offset-slate-950">
+                        <span class="text-xs text-slate-200 font-medium">Filter 'Total' Rows Only</span>
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- Session Count Badge Display -->
+            <div class="flex items-center space-x-4 border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-between md:justify-start">
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">Active Dataset</span>
+                    <span id="sessionSummaryBadge" class="text-xs font-semibold text-sky-400 bg-sky-950/80 px-2.5 py-1 rounded-full border border-sky-800/50">
+                        Loading data...
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Metrics KPI Overview Cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Latest Session Value -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg hover:border-slate-700 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Latest Session</span>
+                    <span class="p-2 rounded-lg bg-sky-950 text-sky-400 text-xs"><i class="fa-solid fa-stopwatch"></i></span>
+                </div>
+                <div class="mt-2">
+                    <div id="kpiLatestValue" class="text-2xl font-bold text-white">--</div>
+                    <p id="kpiLatestSession" class="text-xs text-slate-400 mt-1 truncate">No session data</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Selected Player Average -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg hover:border-slate-700 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Player Mean Avg</span>
+                    <span class="p-2 rounded-lg bg-emerald-950 text-emerald-400 text-xs"><i class="fa-solid fa-user-check"></i></span>
+                </div>
+                <div class="mt-2">
+                    <div id="kpiPlayerAvg" class="text-2xl font-bold text-emerald-400">--</div>
+                    <p class="text-xs text-slate-400 mt-1">Across all session totals</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Team Average Comparison -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg hover:border-slate-700 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Team Mean Avg</span>
+                    <span class="p-2 rounded-lg bg-amber-950 text-amber-400 text-xs"><i class="fa-solid fa-users"></i></span>
+                </div>
+                <div class="mt-2">
+                    <div id="kpiTeamAvg" class="text-2xl font-bold text-amber-400">--</div>
+                    <p id="kpiDiffFromTeam" class="text-xs text-slate-400 mt-1">Vs squad mean</p>
+                </div>
+            </div>
+
+            <!-- Card 4: Peak / Max Output -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg hover:border-slate-700 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Player Peak Output</span>
+                    <span class="p-2 rounded-lg bg-purple-950 text-purple-400 text-xs"><i class="fa-solid fa-trophy"></i></span>
+                </div>
+                <div class="mt-2">
+                    <div id="kpiMaxOutput" class="text-2xl font-bold text-purple-400">--</div>
+                    <p id="kpiMaxOutputSession" class="text-xs text-slate-400 mt-1 truncate">Highest session value</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Interactive Visualization Section -->
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 mb-4 gap-2">
+                <div>
+                    <h2 id="chartTitle" class="text-base font-semibold text-white flex items-center gap-2">
+                        Performance Trajectory
+                    </h2>
+                    <p class="text-xs text-slate-400">Comparing player load across sessions against squad references</p>
+                </div>
+                <!-- Custom Dynamic Legend Indicator -->
+                <div class="flex items-center space-x-4 text-xs font-medium">
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full bg-sky-400 inline-block"></span>
+                        <span class="text-slate-300">Selected Player</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-4 h-0.5 border-t-2 border-dashed border-emerald-400 inline-block"></span>
+                        <span class="text-slate-300">Player Avg</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-4 h-0.5 border-t-2 border-dashed border-amber-400 inline-block"></span>
+                        <span class="text-slate-300">Team Avg</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full h-[360px] sm:h-[420px]">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Detailed Session Data Table -->
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul text-sky-400"></i> Session Breakdown
+                </h3>
+                <span id="tablePlayerName" class="text-xs font-semibold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-md">
+                    Player: --
+                </span>
+            </div>
+
+            <!-- Responsive Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800">
+                        <tr>
+                            <th scope="col" class="py-3 px-4">Session Name</th>
+                            <th scope="col" class="py-3 px-4">Period / Split</th>
+                            <th scope="col" class="py-3 px-4">Date</th>
+                            <th scope="col" class="py-3 px-4">Total Dist (mi)</th>
+                            <th scope="col" class="py-3 px-4">High Intensity (yd)</th>
+                            <th scope="col" class="py-3 px-4">Accelerations</th>
+                            <th scope="col" class="py-3 px-4">Decelerations</th>
+                            <th scope="col" class="py-3 px-4">Sprint Dist (mi)</th>
+                            <th scope="col" class="py-3 px-4">Top Speed (mph)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionTableBody" class="divide-y divide-slate-800/60 font-mono">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-400 mt-auto">
+        <p>APEX GPS Sports Tracking Platform &bull; Built for High Performance Athletics</p>
+    </footer>
+
+    <!-- Toast Notification Modal -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-sky-600 text-white px-4 py-2.5 rounded-lg shadow-2xl text-xs font-medium opacity-0 transition-opacity duration-300 pointer-events-none flex items-center space-x-2 z-50">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">Notification Message</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Metric Definition Configurations & Units
+        const METRIC_CONFIGS = {
+            totalDistance: {
+                label: 'Total Distance',
+                unit: 'Miles',
+                decimals: 2,
+                color: '#38bdf8'
+            },
+            highIntensityDistance: {
+                label: 'High Intensity Distance',
+                unit: 'Yards',
+                decimals: 0,
+                color: '#38bdf8'
+            },
+            accelerations: {
+                label: 'Accelerations',
+                unit: 'Count',
+                decimals: 0,
+                color: '#38bdf8'
+            },
+            decelerations: {
+                label: 'Decelerations',
+                unit: 'Count',
+                decimals: 0,
+                color: '#38bdf8'
+            },
+            sprintDistance: {
+                label: 'Sprint Distance',
+                unit: 'Miles',
+                decimals: 2,
+                color: '#38bdf8'
+            },
+            topSpeed: {
+                label: 'Top Speed',
+                unit: 'mph',
+                decimals: 1,
+                color: '#38bdf8'
+            }
+        };
+
+        // Standardized Default Mock Dataset simulating STATSports multi-period exports (Totals + 1st Half / 2nd Half splits)
+        const DEFAULT_RAW_DATA = [
+            // Alex Morgan - High Volume Prep
+            { "Session Name": "High Volume Prep", "Period Name": "1st Half", "Date": "2026-09-01", "Player Name": "Alex Morgan", "Total Distance (Miles)": 3.1, "High Intensity Distance (Yards)": 310, "Accelerations": 21, "Decelerations": 19, "Sprint Distance (Miles)": 0.40, "Top Speed (mph)": 18.8 },
+            { "Session Name": "High Volume Prep", "Period Name": "2nd Half", "Date": "2026-09-01", "Player Name": "Alex Morgan", "Total Distance (Miles)": 3.1, "High Intensity Distance (Yards)": 310, "Accelerations": 21, "Decelerations": 19, "Sprint Distance (Miles)": 0.45, "Top Speed (mph)": 19.4 },
+            { "Session Name": "High Volume Prep", "Period Name": "Total", "Date": "2026-09-01", "Player Name": "Alex Morgan", "Total Distance (Miles)": 6.2, "High Intensity Distance (Yards)": 620, "Accelerations": 42, "Decelerations": 38, "Sprint Distance (Miles)": 0.85, "Top Speed (mph)": 19.4 },
+
+            // Alex Morgan - MD-2 Tactical
+            { "Session Name": "MD-2 Tactical", "Period Name": "1st Half", "Date": "2026-09-04", "Player Name": "Alex Morgan", "Total Distance (Miles)": 2.4, "High Intensity Distance (Yards)": 240, "Accelerations": 16, "Decelerations": 15, "Sprint Distance (Miles)": 0.28, "Top Speed (mph)": 17.5 },
+            { "Session Name": "MD-2 Tactical", "Period Name": "2nd Half", "Date": "2026-09-04", "Player Name": "Alex Morgan", "Total Distance (Miles)": 2.4, "High Intensity Distance (Yards)": 240, "Accelerations": 15, "Decelerations": 14, "Sprint Distance (Miles)": 0.27, "Top Speed (mph)": 18.2 },
+            { "Session Name": "MD-2 Tactical", "Period Name": "Total", "Date": "2026-09-04", "Player Name": "Alex Morgan", "Total Distance (Miles)": 4.8, "High Intensity Distance (Yards)": 480, "Accelerations": 31, "Decelerations": 29, "Sprint Distance (Miles)": 0.55, "Top Speed (mph)": 18.2 },
+
+            // Alex Morgan - Matchday vs Rivals
+            { "Session Name": "Matchday vs Rivals", "Period Name": "1st Half", "Date": "2026-09-08", "Player Name": "Alex Morgan", "Total Distance (Miles)": 3.7, "High Intensity Distance (Yards)": 380, "Accelerations": 28, "Decelerations": 26, "Sprint Distance (Miles)": 0.58, "Top Speed (mph)": 19.8 },
+            { "Session Name": "Matchday vs Rivals", "Period Name": "2nd Half", "Date": "2026-09-08", "Player Name": "Alex Morgan", "Total Distance (Miles)": 3.4, "High Intensity Distance (Yards)": 360, "Accelerations": 25, "Decelerations": 23, "Sprint Distance (Miles)": 0.52, "Top Speed (mph)": 20.1 },
+            { "Session Name": "Matchday vs Rivals", "Period Name": "Total", "Date": "2026-09-08", "Player Name": "Alex Morgan", "Total Distance (Miles)": 7.1, "High Intensity Distance (Yards)": 740, "Accelerations": 53, "Decelerations": 49, "Sprint Distance (Miles)": 1.10, "Top Speed (mph)": 20.1 },
+
+            // Marcus Rashford
+            { "Session Name": "High Volume Prep", "Period Name": "Total", "Date": "2026-09-01", "Player Name": "Marcus Rashford", "Total Distance (Miles)": 6.8, "High Intensity Distance (Yards)": 820, "Accelerations": 58, "Decelerations": 50, "Sprint Distance (Miles)": 1.25, "Top Speed (mph)": 21.3 },
+            { "Session Name": "MD-2 Tactical", "Period Name": "Total", "Date": "2026-09-04", "Player Name": "Marcus Rashford", "Total Distance (Miles)": 5.1, "High Intensity Distance (Yards)": 590, "Accelerations": 39, "Decelerations": 35, "Sprint Distance (Miles)": 0.78, "Top Speed (mph)": 19.8 },
+            { "Session Name": "Matchday vs Rivals", "Period Name": "Total", "Date": "2026-09-08", "Player Name": "Marcus Rashford", "Total Distance (Miles)": 7.6, "High Intensity Distance (Yards)": 910, "Accelerations": 64, "Decelerations": 58, "Sprint Distance (Miles)": 1.42, "Top Speed (mph)": 21.8 },
+
+            // Jude Bellingham
+            { "Session Name": "High Volume Prep", "Period Name": "Total", "Date": "2026-09-01", "Player Name": "Jude Bellingham", "Total Distance (Miles)": 7.5, "High Intensity Distance (Yards)": 710, "Accelerations": 49, "Decelerations": 47, "Sprint Distance (Miles)": 0.92, "Top Speed (mph)": 19.8 },
+            { "Session Name": "MD-2 Tactical", "Period Name": "Total", "Date": "2026-09-04", "Player Name": "Jude Bellingham", "Total Distance (Miles)": 5.6, "High Intensity Distance (Yards)": 520, "Accelerations": 34, "Decelerations": 33, "Sprint Distance (Miles)": 0.60, "Top Speed (mph)": 18.6 },
+            { "Session Name": "Matchday vs Rivals", "Period Name": "Total", "Date": "2026-09-08", "Player Name": "Jude Bellingham", "Total Distance (Miles)": 8.1, "High Intensity Distance (Yards)": 830, "Accelerations": 57, "Decelerations": 55, "Sprint Distance (Miles)": 1.18, "Top Speed (mph)": 20.5 }
+        ];
+
+        // Core Global Application State
+        let rawParsedRows = [];
+        let filteredDataset = [];
+        let chartInstance = null;
+
+        const playerSelect = document.getElementById('playerSelect');
+        const metricSelect = document.getElementById('metricSelect');
+        const totalOnlyToggle = document.getElementById('totalOnlyToggle');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const downloadSampleBtn = document.getElementById('downloadSampleBtn');
+        const sessionSummaryBadge = document.getElementById('sessionSummaryBadge');
+
+        // KPI Element References
+        const kpiLatestValue = document.getElementById('kpiLatestValue');
+        const kpiLatestSession = document.getElementById('kpiLatestSession');
+        const kpiPlayerAvg = document.getElementById('kpiPlayerAvg');
+        const kpiTeamAvg = document.getElementById('kpiTeamAvg');
+        const kpiDiffFromTeam = document.getElementById('kpiDiffFromTeam');
+        const kpiMaxOutput = document.getElementById('kpiMaxOutput');
+        const kpiMaxOutputSession = document.getElementById('kpiMaxOutputSession');
+
+        // Table & Title Elements
+        const tablePlayerName = document.getElementById('tablePlayerName');
+        const sessionTableBody = document.getElementById('sessionTableBody');
+        const chartTitle = document.getElementById('chartTitle');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadRawDataset(DEFAULT_RAW_DATA);
+
+            playerSelect.addEventListener('change', updateDashboard);
+            metricSelect.addEventListener('change', updateDashboard);
+            totalOnlyToggle.addEventListener('change', processActiveDataset);
+            csvFileInput.addEventListener('change', handleCSVUpload);
+            downloadSampleBtn.addEventListener('click', downloadSampleCSV);
+        });
+
+        function sanitizeKey(key) {
+            if (!key) return '';
+            // Strip UTF-8 Byte Order Mark (BOM) \uFEFF or ï»¿
+            return String(key)
+                .replace(/^\uFEFF/, '')
+                .replace(/^ï»¿/, '')
+                .trim();
+        }
+
+        function loadRawDataset(rawData) {
+            rawParsedRows = rawData.map((item, index) => {
+                // Normalize all keys in row object to remove BOM
+                const cleanItem = {};
+                Object.keys(item).forEach(k => {
+                    cleanItem[sanitizeKey(k)] = item[k];
+                });
+
+                const sName = String(
+                    cleanItem.sessionName || cleanItem['Session Name'] || cleanItem['Session'] || cleanItem['SessionName'] || `Session ${index + 1}`
+                ).trim();
+
+                const periodName = String(
+                    cleanItem.periodName || cleanItem['Period Name'] || cleanItem['Period'] || cleanItem['Split'] || cleanItem['Split Name'] || cleanItem['Sub Session'] || 'Total'
+                ).trim();
+
+                const dateVal = String(
+                    cleanItem.date || cleanItem['Date'] || cleanItem['Session Date'] || cleanItem['SessionDate'] || 'N/A'
+                ).trim();
+
+                const playerVal = String(
+                    cleanItem.player || cleanItem['Player Name'] || cleanItem['Player'] || cleanItem['Name'] || cleanItem['Athlete'] || 'Unknown Player'
+                ).trim();
+
+                return {
+                    sessionName: sName,
+                    periodName: periodName,
+                    date: dateVal,
+                    player: playerVal,
+                    totalDistance: parseFloat(cleanItem.totalDistance ?? cleanItem['Total Distance (Miles)'] ?? cleanItem['Total Distance'] ?? cleanItem['Total Distance Miles'] ?? cleanItem['Distance (mi)'] ?? 0),
+                    highIntensityDistance: parseFloat(cleanItem.highIntensityDistance ?? cleanItem['High Intensity Distance (Yards)'] ?? cleanItem['High Intensity Distance'] ?? cleanItem['High Intensity Distance Yards'] ?? cleanItem['HSR (yd)'] ?? 0),
+                    accelerations: parseFloat(cleanItem.accelerations ?? cleanItem['Accelerations'] ?? cleanItem['Accelerations (Count)'] ?? cleanItem['Accel Count'] ?? 0),
+                    decelerations: parseFloat(cleanItem.decelerations ?? cleanItem['Decelerations'] ?? cleanItem['Decelerations (Count)'] ?? cleanItem['Decel Count'] ?? 0),
+                    sprintDistance: parseFloat(cleanItem.sprintDistance ?? cleanItem['Sprint Distance (Miles)'] ?? cleanItem['Sprint Distance'] ?? cleanItem['Sprint Distance Miles'] ?? 0),
+                    topSpeed: parseFloat(cleanItem.topSpeed ?? cleanItem['Top Speed (mph)'] ?? cleanItem['Top Speed'] ?? cleanItem['Max Speed'] ?? 0)
+                };
+            }).filter(row => row.sessionName && row.player && !isNaN(row.totalDistance));
+
+            processActiveDataset();
+        }
+
+        function processActiveDataset() {
+            const filterTotalsOnly = totalOnlyToggle.checked;
+
+            if (filterTotalsOnly) {
+                // Keep rows that represent full session totals and exclude 1st half / 2nd half sub-splits
+                filteredDataset = rawParsedRows.filter(row => {
+                    const p = row.periodName.toLowerCase();
+                    if (!p) return true;
+                    
+                    // Exclude explicit sub-period tags
+                    const isSubPeriod = p.includes('1st') || p.includes('2nd') || p.includes('half') || p.includes('period 1') || p.includes('period 2') || p.includes('extra time');
+                    if (isSubPeriod) return false;
+
+                    // Include explicit total tags or default full rows
+                    return p.includes('total') || p.includes('full') || p.includes('session') || p.includes('match') || p === 'all' || p === 'n/a';
+                });
+
+                // Fallback: If filtering produced no results, revert to raw dataset
+                if (filteredDataset.length === 0) {
+                    filteredDataset = [...rawParsedRows];
+                }
+            } else {
+                filteredDataset = [...rawParsedRows];
+            }
+
+            // Populate unique players
+            const players = [...new Set(filteredDataset.map(d => d.player))].sort();
+            const prevSelectedPlayer = playerSelect.value;
+            
+            playerSelect.innerHTML = '';
+            players.forEach(player => {
+                const opt = document.createElement('option');
+                opt.value = player;
+                opt.textContent = player;
+                playerSelect.appendChild(opt);
+            });
+
+            if (players.includes(prevSelectedPlayer)) {
+                playerSelect.value = prevSelectedPlayer;
+            } else if (players.length > 0) {
+                playerSelect.value = players[0];
+            }
+
+            // Summary badge update
+            const uniqueSessions = [...new Set(filteredDataset.map(d => d.sessionName))];
+            sessionSummaryBadge.textContent = `${players.length} Players | ${uniqueSessions.length} Total Sessions`;
+
+            updateDashboard();
+        }
+
+        function handleCSVUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: function(header) {
+                    // Clean BOM automatically on import header stream
+                    return sanitizeKey(header);
+                },
+                complete: function (results) {
+                    if (results.data && results.data.length > 0) {
+                        loadRawDataset(results.data);
+                        showToast(`Uploaded ${file.name} (BOM cleaned automatically)`);
+                    } else {
+                        showToast('Failed to parse CSV file content', true);
+                    }
+                },
+                error: function (error) {
+                    showToast(`CSV Error: ${error.message}`, true);
+                }
+            });
+        }
+
+        function downloadSampleCSV() {
+            const headers = ["Session Name", "Period Name", "Session Date", "Player Name", "Total Distance (Miles)", "High Intensity Distance (Yards)", "Accelerations", "Decelerations", "Sprint Distance (Miles)", "Top Speed (mph)"];
+            const rows = DEFAULT_RAW_DATA.map(d => [
+                `"${d["Session Name"]}"`, `"${d["Period Name"]}"`, d["Date"], `"${d["Player Name"]}"`, d["Total Distance (Miles)"], d["High Intensity Distance (Yards)"], d["Accelerations"], d["Decelerations"], d["Sprint Distance (Miles)"], d["Top Speed (mph)"]
+            ]);
+
+            let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+            rows.forEach(row => {
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "statsports_gps_totals_sample.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('STATSports sample CSV downloaded');
+        }
+
+        function updateDashboard() {
+            const selectedPlayer = playerSelect.value;
+            const selectedMetric = metricSelect.value;
+            const metricCfg = METRIC_CONFIGS[selectedMetric];
+
+            if (!selectedPlayer || !filteredDataset.length) return;
+
+            // Filter sessions for selected player
+            const playerSessions = filteredDataset.filter(d => d.player === selectedPlayer);
+
+            // Extract all unique Session Names in order of appearance
+            const allSessionNames = [...new Set(filteredDataset.map(d => d.sessionName))];
+
+            // Calculate Team Average for each Session Name
+            const teamAveragesBySession = {};
+            allSessionNames.forEach(sName => {
+                const sessionsWithName = filteredDataset.filter(d => d.sessionName === sName);
+                const sum = sessionsWithName.reduce((acc, curr) => acc + (curr[selectedMetric] || 0), 0);
+                teamAveragesBySession[sName] = sessionsWithName.length > 0 ? (sum / sessionsWithName.length) : 0;
+            });
+
+            // Overall Player Mean across all sessions
+            const playerMetricValues = playerSessions.map(s => s[selectedMetric] || 0);
+            const playerAverage = playerMetricValues.length > 0 
+                ? (playerMetricValues.reduce((a, b) => a + b, 0) / playerMetricValues.length)
+                : 0;
+
+            // Overall Team Mean across all sessions and players
+            const allMetricValues = filteredDataset.map(d => d[selectedMetric] || 0);
+            const overallTeamAverage = allMetricValues.length > 0 
+                ? (allMetricValues.reduce((a, b) => a + b, 0) / allMetricValues.length)
+                : 0;
+
+            // Compute KPI Card Values
+            const latestSession = playerSessions[playerSessions.length - 1] || {};
+            const latestVal = latestSession[selectedMetric] ?? 0;
+            const maxVal = playerMetricValues.length ? Math.max(...playerMetricValues) : 0;
+            const maxValSession = playerSessions.find(s => s[selectedMetric] === maxVal) || {};
+
+            const formatVal = (val) => Number(val).toFixed(metricCfg.decimals);
+
+            // Update KPI Elements
+            kpiLatestValue.textContent = `${formatVal(latestVal)} ${metricCfg.unit}`;
+            kpiLatestSession.textContent = latestSession.sessionName ? `Session: ${latestSession.sessionName}` : 'No session data';
+
+            kpiPlayerAvg.textContent = `${formatVal(playerAverage)} ${metricCfg.unit}`;
+
+            kpiTeamAvg.textContent = `${formatVal(overallTeamAverage)} ${metricCfg.unit}`;
+            
+            const diffPct = overallTeamAverage !== 0 
+                ? (((playerAverage - overallTeamAverage) / overallTeamAverage) * 100).toFixed(1)
+                : 0;
+            const diffSign = diffPct >= 0 ? '+' : '';
+            kpiDiffFromTeam.innerHTML = `<span class="${diffPct >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${diffSign}${diffPct}%</span> vs squad mean`;
+
+            kpiMaxOutput.textContent = `${formatVal(maxVal)} ${metricCfg.unit}`;
+            kpiMaxOutputSession.textContent = maxValSession.sessionName ? `Peak: ${maxValSession.sessionName}` : 'Highest session value';
+
+            // Update Header & Table titles
+            chartTitle.innerHTML = `<i class="fa-solid fa-chart-line text-sky-400"></i> ${selectedPlayer} &bull; <span class="text-sky-400">${metricCfg.label}</span> (${metricCfg.unit})`;
+            tablePlayerName.textContent = `Player: ${selectedPlayer}`;
+
+            // Render Chart & Table
+            renderChart(selectedPlayer, selectedMetric, playerSessions, allSessionNames, teamAveragesBySession, playerAverage);
+            renderTable(playerSessions);
+        }
+
+        function renderChart(playerName, metricKey, playerSessions, allSessionNames, teamAveragesBySession, playerAverage) {
+            const metricCfg = METRIC_CONFIGS[metricKey];
+
+            // Build map of session name -> metric value
+            const playerDataMap = {};
+            const playerDateMap = {};
+            playerSessions.forEach(s => {
+                playerDataMap[s.sessionName] = s[metricKey];
+                playerDateMap[s.sessionName] = s.date;
+            });
+
+            const playerSeries = allSessionNames.map(sName => playerDataMap[sName] ?? null);
+            const teamAvgSeries = allSessionNames.map(sName => teamAveragesBySession[sName]);
+            const playerAvgSeries = allSessionNames.map(() => playerAverage);
+
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allSessionNames,
+                    datasets: [
+                        {
+                            label: `${playerName} Value`,
+                            data: playerSeries,
+                            borderColor: '#38bdf8', // sky-400
+                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#38bdf8',
+                            pointBorderColor: '#090d16',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            spanGaps: true
+                        },
+                        {
+                            label: 'Player Average',
+                            data: playerAvgSeries,
+                            borderColor: '#10b981', // emerald-500
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0
+                        },
+                        {
+                            label: 'Team Average',
+                            data: teamAvgSeries,
+                            borderColor: '#f59e0b', // amber-500
+                            borderWidth: 2,
+                            borderDash: [3, 3],
+                            fill: false,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#f59e0b',
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    const sName = tooltipItems[0].label;
+                                    const dateVal = playerDateMap[sName];
+                                    return dateVal && dateVal !== 'N/A' ? `${sName} (${dateVal})` : sName;
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(metricCfg.decimals) + ' ' + metricCfg.unit;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.3)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 11,
+                                    family: 'Inter'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Session Name',
+                                color: '#64748b',
+                                font: { size: 12, weight: '500' }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.4)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 11,
+                                    family: 'Inter'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: `${metricCfg.label} (${metricCfg.unit})`,
+                                color: '#64748b',
+                                font: { size: 12, weight: '500' }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTable(playerSessions) {
+            sessionTableBody.innerHTML = '';
+
+            if (!playerSessions || playerSessions.length === 0) {
+                sessionTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-6 text-slate-500 italic">No session data recorded for this player.</td>
+                    </tr>`;
+                return;
+            }
+
+            playerSessions.forEach((session, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = idx % 2 === 0 ? 'bg-slate-900/50 hover:bg-slate-800/40 transition' : 'bg-slate-950 hover:bg-slate-800/40 transition';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-sky-400">${session.sessionName}</td>
+                    <td class="py-3 px-4 text-slate-400"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] font-sans">${session.periodName}</span></td>
+                    <td class="py-3 px-4 text-slate-400">${session.date}</td>
+                    <td class="py-3 px-4">${session.totalDistance.toFixed(2)} mi</td>
+                    <td class="py-3 px-4">${Math.round(session.highIntensityDistance)} yd</td>
+                    <td class="py-3 px-4">${Math.round(session.accelerations)}</td>
+                    <td class="py-3 px-4">${Math.round(session.decelerations)}</td>
+                    <td class="py-3 px-4">${session.sprintDistance.toFixed(2)} mi</td>
+                    <td class="py-3 px-4 text-emerald-400 font-semibold">${session.topSpeed.toFixed(1)} mph</td>
+                `;
+                sessionTableBody.appendChild(tr);
+            });
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+
+            toastMsg.textContent = message;
+            toast.className = `fixed bottom-5 right-5 text-white px-4 py-2.5 rounded-lg shadow-2xl text-xs font-medium transition-all duration-300 flex items-center space-x-2 z-50 ${
+                isError ? 'bg-rose-600' : 'bg-sky-600'
+            }`;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
