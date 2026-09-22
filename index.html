@@ -258,7 +258,7 @@
                             <th scope="col" class="py-3 px-4">High Intensity (yd)</th>
                             <th scope="col" class="py-3 px-4">Accelerations</th>
                             <th scope="col" class="py-3 px-4">Decelerations</th>
-                            <th scope="col" class="py-3 px-4">Sprint Dist (mi)</th>
+                            <th scope="col" class="py-3 px-4">Sprint Dist (yd)</th>
                             <th scope="col" class="py-3 px-4">Top Speed (mph)</th>
                         </tr>
                     </thead>
@@ -767,14 +767,14 @@
                 tr.className = idx % 2 === 0 ? 'bg-slate-900/50 hover:bg-slate-800/40 transition' : 'bg-slate-950 hover:bg-slate-800/40 transition';
 
                 tr.innerHTML = `
-                    <td class="py-3 px-4 font-semibold text-sky-400">${session.sessionName}</td>
-                    <td class="py-3 px-4 text-slate-400"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] font-sans">${session.periodName}</span></td>
-                    <td class="py-3 px-4 text-slate-400">${session.date}</td>
-                    <td class="py-3 px-4">${session.totalDistance.toFixed(2)} mi</td>
-                    <td class="py-3 px-4">${Math.round(session.highIntensityDistance)} yd</td>
-                    <td class="py-3 px-4">${Math.round(session.accelerations)}</td>
-                    <td class="py-3 px-4">${Math.round(session.decelerations)}</td>
-                    <td class="py-3 px-4">${session.sprintDistance.toFixed(2)} mi</td>
+                    <td -3 px-4 font-semibold text-sky-400">${session.sessionName}</td>
+                    <td -3 px-4 text-slate-400"><span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] font-sans">${session.periodName}</span></td>
+                    <td -3 px-4 text-slate-400">${session.date}</td>
+                    <td -3 px-4">${session.totalDistance.toFixed(2)} mi</td>
+                    <td -3 px-4">${Math.round(session.highIntensityDistance)} yd</td>
+                    <td -3 px-4">${Math.round(session.accelerations)}</td>
+                    <td -3 px-4">${Math.round(session.decelerations)}</td>
+                    <td class="py-3 px-4">${Math.round(session.sprintDistance)} yd</td>
                     <td class="py-3 px-4 text-emerald-400 font-semibold">${session.topSpeed.toFixed(1)} mph</td>
                 `;
                 sessionTableBody.appendChild(tr);
